@@ -227,12 +227,12 @@ MIT © Conductus Labs Ltd
 
 - **Repository**: https://github.com/Conductus-Labs/baton-agents
 - **Issues**: https://github.com/Conductus-Labs/baton-agents/issues
-- **Baton Framework**: https://github.com/Conductus-Labs/baton-framework
-- **Conductus Labs**: https://github.com/Conductus-Labs
+- **Conductus Labs**: https://www.conductuslabs.com
 
 ## Support
 
 For questions and support:
+
 - Open an issue on GitHub
 - Check existing agent and pattern definitions for examples
 - Review the Baton Framework documentation
