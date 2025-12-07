@@ -214,6 +214,7 @@ This package uses automated versioning and publishing:
 ### Workflows
 
 - **pr-validation.yml** - Validates PRs by running linters
+- **branch-validation.yml** - Enforces that PRs to `main` must come from `dev` only
 - **publish-github-packages.yml** - Publishes dev versions to GitHub Packages
 - **publish.yml** - Publishes stable releases to npm
 - **version-management.yml** - Manages version bumps and tagging
