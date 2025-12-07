@@ -1,0 +1,49 @@
+name: Publish to GitHub Packages
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Publish Dev Version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@conductus-labs'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint:all
+
+      - name: Get current version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          DEV_VERSION="${VERSION}-dev.$(date +%s)"
+          echo "dev_version=$DEV_VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing dev version: $DEV_VERSION"
+
+      - name: Update version to dev
+        run: npm version ${{ steps.version.outputs.dev_version }} --no-git-tag-version
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

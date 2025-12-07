@@ -1,0 +1,90 @@
+name: Version Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      version-type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      skip-publish:
+        description: 'Skip automatic npm publish trigger'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  version-bump:
+    name: Bump Version and Create Tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint:all
+
+      - name: Bump version
+        id: version
+        run: |
+          NEW_VERSION=$(npm version ${{ inputs.version-type }} --no-git-tag-version)
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumped version to: $NEW_VERSION"
+
+      - name: Update package-lock.json
+        run: npm install --package-lock-only
+
+      - name: Commit version bump
+        run: |
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
+
+      - name: Create and push tag
+        if: ${{ !inputs.skip-publish }}
+        run: |
+          git tag ${{ steps.version.outputs.new_version }}
+          git push origin main
+          git push origin ${{ steps.version.outputs.new_version }}
+
+      - name: Push without tag
+        if: ${{ inputs.skip-publish }}
+        run: |
+          git push origin main
+
+      - name: Summary
+        run: |
+          echo "### Version Management Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **New Version**: ${{ steps.version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version Type**: ${{ inputs.version-type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag Created**: ${{ !inputs.skip-publish }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.skip-publish }}" = "false" ]; then
+            echo "- **NPM Publish**: Will be triggered by tag push" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **NPM Publish**: Skipped" >> $GITHUB_STEP_SUMMARY
+          fi

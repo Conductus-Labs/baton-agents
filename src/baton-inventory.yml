@@ -1,0 +1,116 @@
+- name: baton-agent-inventory
+  path: .baton/baton-agents-inventory.yml
+  version: 1.0.0
+  agents:
+    - name: automated-test-engineer-agent
+      short_name: automated-test-agent
+      description: "Automated testing specialist"
+      path: .baton/agents/automated-test-engineer-agent.md
+    - name: backend-engineer-agent
+      short_name: backend-agent
+      description: "Backend engineering specialist"
+      path: .baton/agents/backend-engineer-agent.md
+    - name: baton-agent
+      short_name: baton-agent
+      description: "Baton Framework specialist and agent designer"
+      path: .baton/agents/baton-agent.md
+    - name: business-advisor-agent
+      short_name: business-advisor-agent
+      description: "Strategic Business Advisor and Executive Consultant"
+      path: .baton/agents/business-advisor-agent.md
+    - name: business-analyst-agent
+      short_name: ba-agent
+      description: "Strategic Business Analyst and Requirements Expert"
+      path: .baton/agents/business-analyst-agent.md
+    - name: cli-engineer-agent
+      short_name: cli-agent
+      description: "CLI engineering specialist"
+      path: .baton/agents/cli-engineer-agent.md
+    - name: code-review-agent
+      short_name: review-agent
+      description: "Code Review and Quality Assurance Specialist"
+      path: .baton/agents/code-review-agent.md
+    - name: content-strategist-agent
+      short_name: content-agent
+      description: "Content strategy specialist"
+      path: .baton/agents/content-strategist-agent.md
+    - name: data-science-engineer-agent
+      short_name: ds-agent
+      description: "Data science engineering specialist"
+      path: .baton/agents/data-science-engineer-agent.md
+    - name: database-engineer-agent
+      short_name: db-agent
+      description: "Database engineering specialist"
+      path: .baton/agents/database-engineer-agent.md
+    - name: devops-engineer-agent
+      short_name: devops-agent
+      description: "DevOps engineering specialist"
+      path: .baton/agents/devops-engineer-agent.md
+    - name: frontend-engineer-agent
+      short_name: frontend-agent
+      description: "Frontend engineering specialist"
+      path: .baton/agents/frontend-engineer-agent.md
+    - name: knowledge-designer-agent
+      short_name: knowledge-designer-agent
+      description: "Baton Framework Knowledge File Creation and Management Specialist"
+      path: .baton/agents/knowledge-designer-agent.md
+    - name: marketing-expert-agent
+      short_name: marketing-expert-agent
+      description: "Marketing Strategy and Campaign Management Specialist"
+      path: .baton/agents/marketing-expert-agent.md
+    - name: project-manager-agent
+      short_name: pm-agent
+      description: "Project management specialist"
+      path: .baton/agents/project-manager-agent.md
+    - name: quality-assurance-agent
+      short_name: qa-agent
+      description: "Quality Assurance and Testing Specialist"
+      path: .baton/agents/quality-assurance-agent.md
+    - name: research-assistant-agent
+      short_name: research-agent
+      description: "Research Assistant specializing in knowledge synthesis and management"
+      path: .baton/agents/research-assistant-agent.md
+    - name: rhythm-expert-agent
+      short_name: rhythm-agent
+      description: "RHYTHM Method Specialist and Project Management Expert"
+      path: .baton/agents/rhythm-expert-agent.md
+    - name: security-engineer-agent
+      short_name: security-agent
+      description: "Security Engineering and Threat Assessment Specialist"
+      path: .baton/agents/security-engineer-agent.md
+    - name: seo-expert-agent
+      short_name: seo-expert-agent
+      description: "Search Engine Optimization Specialist and Technical SEO Expert"
+      path: .baton/agents/seo-expert-agent.md
+    - name: software-architect-agent
+      short_name: architect-agent
+      description: "Solution Architecture and System Design Specialist"
+      path: .baton/agents/software-architect-agent.md
+    - name: technical-writer-agent
+      short_name: tech-writer-agent
+      description: "Technical documentation specialist"
+      path: .baton/agents/technical-writer-agent.md
+    - name: ui-ux-design-agent
+      short_name: ui-ux-agent
+      description: "UI/UX design specialist"
+      path: .baton/agents/ui-ux-design-agent.md
+    - name: workflow-designer-agent
+      short_name: workflow-designer-agent
+      description: "Baton Framework Workflow Design and Management Specialist"
+      path: .baton/agents/workflow-designer-agent.md
+  commands:
+    - name: agent-init
+      description: "Initialize an agent for a new session"
+      path:
+        - .baton/commands/markdown/baton-agent/agent-init.md
+        - .baton/commands/toml/baton-agent/agent-init.toml
+    - name: agent-list
+      description: "List all available agents"
+      path:
+        - .baton/commands/markdown/baton-agent/agent-list.md
+        - .baton/commands/toml/baton-agent/agent-list.toml
+    - name: agent-context-sync
+      description: "Sync the context of an agent"
+      path:
+        - .baton/commands/markdown/baton-agent/agent-context-sync.md
+        - .baton/commands/toml/baton-agent/agent-context-sync.toml
