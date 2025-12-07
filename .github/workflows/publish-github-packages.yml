@@ -1,3 +1,19 @@
+# Publish to GitHub Packages Workflow
+#
+# Purpose: Automatically publish all packages to GitHub Packages when code is merged to dev branch
+# This provides internal testing packages before public npm release.
+#
+# Publishing Strategy:
+# - dev branch → GitHub Packages (with -dev-{timestamp} suffix)
+# - main branch tags → npm registry (public release)
+#
+# Version Format: {base-version}-dev-{timestamp}
+# Example: 1.0.0-dev-20251201173237
+#
+# Authentication: Uses GITHUB_TOKEN (automatically available, no secret needed)
+# Registry: https://npm.pkg.github.com
+# Scope: @conductus-labs
+
 name: Publish to GitHub Packages
 
 on:
@@ -13,7 +29,6 @@ jobs:
   publish:
     name: Publish Dev Version
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,12 +36,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
-          registry-url: 'https://npm.pkg.github.com'
+          node-version: "18"
+          scope: "@conductus-labs"
+          cache: "npm"
+          registry-url: "https://npm.pkg.github.com"
 
       - name: Install dependencies
         run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run linting
         run: npm run lint:all
@@ -45,4 +63,17 @@ jobs:
       - name: Publish to GitHub Packages
         run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GPR_TOKEN }}
+
+      - name: Publish Summary
+        if: always()
+        run: |
+          echo "## 📦 GitHub Package Publishing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| @conductus-labs/baton-agents | ${{ steps.publish-agents.outcome == 'success' && '✅ Published' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Dev Version Suffix:** ${{ steps.version-suffix.outputs.dev-suffix }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Packages are available at: https://github.com/orgs/Conductus-Labs/packages" >> $GITHUB_STEP_SUMMARY
