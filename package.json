@@ -1,6 +1,6 @@
 {
   "name": "@conductus-labs/baton-agents",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "Baton Framework Agent and Cognitive Definitions",
   "type": "module",
   "files": [
