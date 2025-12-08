@@ -3,12 +3,15 @@ name: PR Validation
 on:
   pull_request:
     branches:
-      - dev
       - main
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
-  lint:
+  lint-validation:
     name: Lint Validation
     runs-on: ubuntu-latest
 
@@ -20,16 +23,53 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@conductus-labs'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run lint:all
+      - name: Run linting
         run: npm run lint:all
 
-      - name: Check status
-        if: failure()
+      - name: Get PR version
+        id: version
         run: |
-          echo "❌ Linting failed. Please fix the issues above."
-          exit 1
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          PR_VERSION="${BASE_VERSION}-pr.${{ github.event.pull_request.number }}.${SHORT_SHA}"
+          echo "pr_version=$PR_VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Publishing PR package version: $PR_VERSION"
+
+      - name: Update version to PR version
+        run: npm version ${{ steps.version.outputs.pr_version }} --no-git-tag-version
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "## ✅ PR Validation Passed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- **Linting**: Passed" >> $GITHUB_STEP_SUMMARY
+            echo "- **Dev Package**: Published" >> $GITHUB_STEP_SUMMARY
+            echo "- **Version**: ${{ steps.version.outputs.pr_version }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📦 Test This PR" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "npm install @conductus-labs/baton-agents@${{ steps.version.outputs.pr_version }}" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Packages: https://github.com/orgs/Conductus-Labs/packages" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ PR Validation Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please fix the linting errors above." >> $GITHUB_STEP_SUMMARY
+          fi
