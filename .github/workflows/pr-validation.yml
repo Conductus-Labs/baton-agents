@@ -11,8 +11,8 @@ permissions:
   packages: write
 
 jobs:
-  lint-and-publish:
-    name: Lint and Publish Dev Package
+  lint-validation:
+    name: Lint Validation
     runs-on: ubuntu-latest
 
     steps:
