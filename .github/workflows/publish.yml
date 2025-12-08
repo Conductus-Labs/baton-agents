@@ -27,15 +27,17 @@ jobs:
           # Get current version from package.json
           CURRENT_VERSION=$(node -p "require('./package.json').version")
 
-          # Check if this is a version bump commit (from version-management workflow)
-          COMMIT_MSG=$(git log -1 --pretty=%B)
-          if [[ $COMMIT_MSG == "chore: bump version to v"* ]]; then
+          # Get previous version from package.json (before this commit)
+          PREVIOUS_VERSION=$(git show HEAD~1:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version")
+
+          # Check if version actually changed
+          if [[ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]]; then
             echo "is_version_bump=true" >> $GITHUB_OUTPUT
             echo "version=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
-            echo "✅ This is a version bump commit: v$CURRENT_VERSION"
+            echo "✅ Version bump detected: v$PREVIOUS_VERSION → v$CURRENT_VERSION"
           else
             echo "is_version_bump=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ Not a version bump commit, skipping publish"
+            echo "ℹ️ No version change detected, skipping publish"
           fi
 
       - name: Setup Node.js
