@@ -51,19 +51,32 @@ jobs:
         run: |
           NEW_VERSION=$(npm version ${{ inputs.version-type }} --no-git-tag-version)
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version_number=${NEW_VERSION#v}" >> $GITHUB_OUTPUT
           echo "Bumped version to: $NEW_VERSION"
 
       - name: Update package-lock.json
         run: npm install --package-lock-only
 
-      - name: Commit and push version bump to dev
+      - name: Create version bump branch
+        id: branch
+        run: |
+          BRANCH_NAME="release/${{ steps.version.outputs.new_version }}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH_NAME"
+          echo "✅ Created branch: $BRANCH_NAME"
+
+      - name: Commit version bump
         run: |
           git add package.json package-lock.json
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
-          git push origin dev
 
-      - name: Create Pull Request to main
-        id: create-pr
+      - name: Push version bump branch
+        run: |
+          git push origin ${{ steps.branch.outputs.branch_name }}
+          echo "✅ Pushed branch: ${{ steps.branch.outputs.branch_name }}"
+
+      - name: Create PR to dev
+        id: create-pr-dev
         uses: actions/github-script@v7
         with:
           script: |
@@ -71,23 +84,20 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Release ${{ steps.version.outputs.new_version }}`,
-              head: 'dev',
-              base: 'main',
+              head: '${{ steps.branch.outputs.branch_name }}',
+              base: 'dev',
               body: `## Release ${{ steps.version.outputs.new_version }}
 
               This PR was automatically created by the Version Management workflow.
 
               ### Changes
-              - Bumped version from previous to ${{ steps.version.outputs.new_version }}
+              - Bumped version to ${{ steps.version.outputs.new_version }}
               - Updated package.json and package-lock.json
 
-              ### Next Steps
-              1. Review and approve this PR
-              2. Merge to main
-              3. The publish workflow will automatically:
-                 - Create git tag: ${{ steps.version.outputs.new_version }}
-                 - Publish to npm
-                 - Create GitHub Release
+              ### Release Process
+              1. ✅ Review and merge this PR to \`dev\`
+              2. ⏳ Manually create PR from \`dev\` to \`main\`
+              3. ⏳ Merge to \`main\` to trigger npm publish
 
               ---
 
@@ -101,17 +111,19 @@ jobs:
 
       - name: Summary
         run: |
-          echo "## 🎉 Version Management Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎉 Version Management Started" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Version Details" >> $GITHUB_STEP_SUMMARY
           echo "- **New Version**: ${{ steps.version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Version Type**: ${{ inputs.version-type }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch**: dev" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch Created**: \`${{ steps.branch.outputs.branch_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Release PR Created" >> $GITHUB_STEP_SUMMARY
-          echo "- **PR #${{ steps.create-pr.outputs.pr-number }}**: ${{ steps.create-pr.outputs.pr-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR to dev**: #${{ steps.create-pr-dev.outputs.pr-number }} - ${{ steps.create-pr-dev.outputs.pr-url }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. ✅ Review and approve the PR" >> $GITHUB_STEP_SUMMARY
-          echo "2. ✅ Merge the PR to main" >> $GITHUB_STEP_SUMMARY
-          echo "3. ⏳ Tag creation and npm publish will happen automatically" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Review and merge PR #${{ steps.create-pr-dev.outputs.pr-number }} to \`dev\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ Create PR from \`dev\` to \`main\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ Merge to \`main\` to trigger npm publish" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Both \`dev\` and \`main\` branches are protected and require PRs for all changes." >> $GITHUB_STEP_SUMMARY
