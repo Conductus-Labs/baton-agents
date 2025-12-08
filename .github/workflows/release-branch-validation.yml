@@ -1,0 +1,24 @@
+name: Release Branch Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-release-branch:
+    name: Validate Release Branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch
+        run: |
+          SOURCE_BRANCH="${{ github.head_ref }}"
+
+          if [[ $SOURCE_BRANCH =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "✅ Valid release branch: $SOURCE_BRANCH"
+            exit 0
+          else
+            echo "❌ Invalid branch: $SOURCE_BRANCH"
+            echo "Only release/vX.X.X branches can merge to main"
+            exit 1
+          fi

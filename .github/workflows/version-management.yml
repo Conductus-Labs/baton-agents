@@ -76,7 +76,7 @@ jobs:
           echo "✅ Pushed branch: ${{ steps.branch.outputs.branch_name }}"
 
       - name: Create PR to dev
-        id: create-pr-dev
+        id: create-pr-main
         uses: actions/github-script@v7
         with:
           script: |
@@ -85,7 +85,7 @@ jobs:
               repo: context.repo.repo,
               title: `Release ${{ steps.version.outputs.new_version }}`,
               head: '${{ steps.branch.outputs.branch_name }}',
-              base: 'dev',
+              base: 'main',
               body: `## Release ${{ steps.version.outputs.new_version }}
 
               This PR was automatically created by the Version Management workflow.
@@ -95,7 +95,7 @@ jobs:
               - Updated package.json and package-lock.json
 
               ### Release Process
-              1. ✅ Review and merge this PR to \`dev\`
+              1. ✅ Review and merge this PR to \`main\`
               2. ⏳ Manually create PR from \`dev\` to \`main\`
               3. ⏳ Merge to \`main\` to trigger npm publish
 
