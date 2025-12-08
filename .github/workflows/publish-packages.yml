@@ -93,17 +93,35 @@ jobs:
           # Get current version from package.json
           CURRENT_VERSION=$(node -p "require('./package.json').version")
 
-          # Get previous version from package.json (before this commit)
-          PREVIOUS_VERSION=$(git show HEAD~1:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version")
+          # Check if this is a merge commit from a release or sync branch
+          COMMIT_MSG=$(git log -1 --pretty=%B)
 
-          # Check if version actually changed
+          # Method 1: Check if merge is from release/vX.X.X branch
+          if [[ $COMMIT_MSG =~ Release\ v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "is_version_bump=true" >> $GITHUB_OUTPUT
+            echo "version=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "✅ Release merge detected: v$CURRENT_VERSION"
+            exit 0
+          fi
+
+          # Method 2: Check if commit message indicates version bump
+          if [[ $COMMIT_MSG =~ "chore: bump version to v" ]]; then
+            echo "is_version_bump=true" >> $GITHUB_OUTPUT
+            echo "version=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "✅ Version bump commit detected: v$CURRENT_VERSION"
+            exit 0
+          fi
+
+          # Method 3: Compare with previous version (fallback for direct commits)
+          PREVIOUS_VERSION=$(git show HEAD~1:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version" 2>/dev/null || echo "0.0.0")
+
           if [[ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]]; then
             echo "is_version_bump=true" >> $GITHUB_OUTPUT
             echo "version=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
-            echo "✅ Version bump detected: v$PREVIOUS_VERSION → v$CURRENT_VERSION"
+            echo "✅ Version change detected: v$PREVIOUS_VERSION → v$CURRENT_VERSION"
           else
             echo "is_version_bump=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No version change detected, skipping publish"
+            echo "ℹ️ No version bump detected, skipping publish"
           fi
 
       - name: Setup Node.js

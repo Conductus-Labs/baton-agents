@@ -29,6 +29,22 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
+      - name: Check if dev is in sync with main
+        run: |
+          git fetch origin main
+          BEHIND=$(git rev-list --count HEAD..origin/main)
+
+          if [ "$BEHIND" -gt 0 ]; then
+            echo "⚠️ WARNING: dev branch is $BEHIND commits behind main"
+            echo "This may cause 'branch out of date' warnings on the release PR."
+            echo ""
+            echo "💡 TIP: Merge any pending sync PRs (main → dev) before running Version Management"
+            echo ""
+            echo "Continuing anyway..."
+          else
+            echo "✅ dev branch is in sync with main"
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
