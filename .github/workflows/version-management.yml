@@ -11,31 +11,28 @@ on:
           - patch
           - minor
           - major
-      skip-publish:
-        description: 'Skip automatic npm publish trigger'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   version-bump:
-    name: Bump Version and Create Tag
+    name: Bump Version and Create Release PR
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout dev branch
         uses: actions/checkout@v4
         with:
+          ref: dev
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Configure git
@@ -54,37 +51,79 @@ jobs:
         run: |
           NEW_VERSION=$(npm version ${{ inputs.version-type }} --no-git-tag-version)
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version_number=${NEW_VERSION#v}" >> $GITHUB_OUTPUT
           echo "Bumped version to: $NEW_VERSION"
 
       - name: Update package-lock.json
         run: npm install --package-lock-only
+
+      - name: Create version bump branch
+        id: branch
+        run: |
+          BRANCH_NAME="release/${{ steps.version.outputs.new_version }}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH_NAME"
+          echo "✅ Created branch: $BRANCH_NAME"
 
       - name: Commit version bump
         run: |
           git add package.json package-lock.json
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
 
-      - name: Create and push tag
-        if: ${{ !inputs.skip-publish }}
+      - name: Push version bump branch
         run: |
-          git tag ${{ steps.version.outputs.new_version }}
-          git push origin main
-          git push origin ${{ steps.version.outputs.new_version }}
+          git push origin ${{ steps.branch.outputs.branch_name }}
+          echo "✅ Pushed branch: ${{ steps.branch.outputs.branch_name }}"
 
-      - name: Push without tag
-        if: ${{ inputs.skip-publish }}
-        run: |
-          git push origin main
+      - name: Create PR to dev
+        id: create-pr-main
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Release ${{ steps.version.outputs.new_version }}`,
+              head: '${{ steps.branch.outputs.branch_name }}',
+              base: 'main',
+              body: `## Release ${{ steps.version.outputs.new_version }}
+
+              This PR was automatically created by the Version Management workflow.
+
+              ### Changes
+              - Bumped version to ${{ steps.version.outputs.new_version }}
+              - Updated package.json and package-lock.json
+
+              ### Release Process
+              1. ✅ Review and merge this PR to \`main\`
+              2. ⏳ Manually create PR from \`dev\` to \`main\`
+              3. ⏳ Merge to \`main\` to trigger npm publish
+
+              ---
+
+              **Version Type:** ${{ inputs.version-type }}
+              **Triggered by:** @${{ github.actor }}`
+            });
+
+            core.setOutput('pr-number', pr.number);
+            core.setOutput('pr-url', pr.html_url);
+            return pr.number;
 
       - name: Summary
         run: |
-          echo "### Version Management Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎉 Version Management Started" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Version Details" >> $GITHUB_STEP_SUMMARY
           echo "- **New Version**: ${{ steps.version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Version Type**: ${{ inputs.version-type }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tag Created**: ${{ !inputs.skip-publish }}" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ inputs.skip-publish }}" = "false" ]; then
-            echo "- **NPM Publish**: Will be triggered by tag push" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- **NPM Publish**: Skipped" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "- **Branch Created**: \`${{ steps.branch.outputs.branch_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Release PR Created" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR to dev**: #${{ steps.create-pr-dev.outputs.pr-number }} - ${{ steps.create-pr-dev.outputs.pr-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Review and merge PR #${{ steps.create-pr-dev.outputs.pr-number }} to \`dev\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ Create PR from \`dev\` to \`main\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ Merge to \`main\` to trigger npm publish" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Both \`dev\` and \`main\` branches are protected and require PRs for all changes." >> $GITHUB_STEP_SUMMARY

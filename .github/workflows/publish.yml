@@ -2,58 +2,101 @@ name: Publish to NPM
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
+    paths:
+      - 'package.json'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  publish:
-    name: Publish to NPM Registry
+  check-and-publish:
+    name: Check Version and Publish to NPM
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check if version was bumped
+        id: version-check
+        run: |
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+
+          # Check if this is a version bump commit (from version-management workflow)
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          if [[ $COMMIT_MSG == "chore: bump version to v"* ]]; then
+            echo "is_version_bump=true" >> $GITHUB_OUTPUT
+            echo "version=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "✅ This is a version bump commit: v$CURRENT_VERSION"
+          else
+            echo "is_version_bump=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Not a version bump commit, skipping publish"
+          fi
 
       - name: Setup Node.js
+        if: steps.version-check.outputs.is_version_bump == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
+        if: steps.version-check.outputs.is_version_bump == 'true'
         run: npm ci
 
       - name: Run linting
+        if: steps.version-check.outputs.is_version_bump == 'true'
         run: npm run lint:all
 
-      - name: Verify version matches tag
-        run: |
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
-          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "❌ Version mismatch: package.json has $PKG_VERSION but tag is $TAG_VERSION"
-            exit 1
-          fi
-          echo "✅ Version verified: $PKG_VERSION"
-
       - name: Build package
+        if: steps.version-check.outputs.is_version_bump == 'true'
         run: npm run package
 
+      - name: Create and push tag
+        if: steps.version-check.outputs.is_version_bump == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.version-check.outputs.version }}
+          git push origin ${{ steps.version-check.outputs.version }}
+          echo "✅ Created and pushed tag: ${{ steps.version-check.outputs.version }}"
+
       - name: Publish to NPM
+        if: steps.version-check.outputs.is_version_bump == 'true'
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
+        if: steps.version-check.outputs.is_version_bump == 'true'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ steps.version-check.outputs.version }}
+          release_name: Release ${{ steps.version-check.outputs.version }}
           draft: false
           prerelease: false
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ steps.version-check.outputs.is_version_bump }}" = "true" ]; then
+            echo "## 🚀 NPM Publish Complete" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- **Version**: ${{ steps.version-check.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Package**: @conductus-labs/baton-agents" >> $GITHUB_STEP_SUMMARY
+            echo "- **Registry**: https://www.npmjs.com/package/@conductus-labs/baton-agents" >> $GITHUB_STEP_SUMMARY
+            echo "- **Tag Created**: ${{ steps.version-check.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **GitHub Release**: Created" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ℹ️ Publish Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "This commit was not a version bump, so no publish was performed." >> $GITHUB_STEP_SUMMARY
+          fi
