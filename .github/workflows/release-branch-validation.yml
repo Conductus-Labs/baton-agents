@@ -17,8 +17,14 @@ jobs:
           if [[ $SOURCE_BRANCH =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "✅ Valid release branch: $SOURCE_BRANCH"
             exit 0
+          elif [[ $SOURCE_BRANCH =~ ^sync/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "✅ Valid sync branch: $SOURCE_BRANCH"
+            exit 0
           else
             echo "❌ Invalid branch: $SOURCE_BRANCH"
-            echo "Only release/vX.X.X branches can merge to main"
+            echo "Only release/vX.X.X or sync/vX.X.X branches can merge to main"
+            echo ""
+            echo "- release/vX.X.X: For new releases from Version Management workflow"
+            echo "- sync/vX.X.X: For version sync from Publish workflow"
             exit 1
           fi
