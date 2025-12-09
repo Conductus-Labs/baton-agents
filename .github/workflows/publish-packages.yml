@@ -2,7 +2,7 @@
 #
 # Publishes to npm registry when a version bump is merged to main
 #
-# Authentication: Uses NPM_TOKEN secret
+# Authentication: Uses npm Trusted Publishing (OIDC) - no token needed!
 
 name: Publish to NPM
 
@@ -14,6 +14,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write  # Required for npm Trusted Publishing (OIDC)
 
 jobs:
   publish-npm:
@@ -95,9 +96,7 @@ jobs:
 
       - name: Publish to NPM
         if: steps.version-check.outputs.is_version_bump == 'true'
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
 
       - name: Create GitHub Release
         if: steps.version-check.outputs.is_version_bump == 'true'
