@@ -1,5 +1,9 @@
 # @conductus-labs/baton-agents
 
+[![npm version](https://img.shields.io/npm/v/@conductus-labs/baton-agents)](https://www.npmjs.com/package/@conductus-labs/baton-agents)
+[![npm downloads](https://img.shields.io/npm/dm/@conductus-labs/baton-agents)](https://www.npmjs.com/package/@conductus-labs/baton-agents)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 > Baton Framework Agent and Cognitive Pattern Definitions
 
 A comprehensive collection of AI agent definitions and cognitive thinking patterns designed for the Baton Framework. This package provides pre-configured agent roles and cognitive patterns that can be used to build sophisticated AI-powered applications.
@@ -197,27 +201,30 @@ We welcome contributions! Please follow these guidelines:
 
 ## Release Process
 
-This package uses automated versioning and publishing:
+This package uses trunk-based development with automated versioning and publishing:
 
 ### Creating a Release
 
-1. **Version Bump**: Run the "Version Management" workflow
+1. **Run Version Management Workflow**:
    - Go to Actions → Version Management → Run workflow
    - Select version type: `patch`, `minor`, or `major`
-   - This creates a version tag and triggers npm publish
+   - This creates a PR with the version bump
 
-2. **Automatic Publishing**:
-   - **Dev Versions**: Automatically published to GitHub Packages on push to `dev` branch
-   - **Stable Releases**: Automatically published to npm when version tags are created
-   - **GitHub Releases**: Automatically created for stable releases
+2. **PR Workflow**:
+   - PR validation runs automatically (linting + dev package publish)
+   - Dev package published to GitHub Packages for testing: `@conductus-labs/baton-agents@X.X.X-pr.N.abc1234`
+   - Review and merge the PR
+
+3. **Automatic Publishing** (on merge to main):
+   - Git tag created: `vX.X.X`
+   - Package published to npm with provenance
+   - GitHub Release created automatically
 
 ### Workflows
 
-- **pr-validation.yml** - Validates PRs by running linters
-- **branch-validation.yml** - Enforces that PRs to `main` must come from `dev` only
-- **publish-github-packages.yml** - Publishes dev versions to GitHub Packages
-- **publish.yml** - Publishes stable releases to npm
-- **version-management.yml** - Manages version bumps and tagging
+- **pr-validation.yml** - Runs linting and publishes dev packages to GitHub Packages
+- **publish-packages.yml** - Publishes stable releases to npm when version is bumped on main
+- **version-management.yml** - Creates version bump PRs
 
 ## License
 
